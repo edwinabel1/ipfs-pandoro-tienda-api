@@ -111,3 +111,12 @@ enabled = true
 # [[vectorize]]
 # binding = "MY_INDEX"
 # index_name = "my-index"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ipfs-pandoro-d1"
+database_id = "44b0487f-c8dc-4fb5-855b-32d27b90f151"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "ipfs-pandoro"
