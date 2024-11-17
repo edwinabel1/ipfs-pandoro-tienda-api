@@ -1,5 +1,6 @@
 import { fromHono } from "chanfana";
 import { Hono } from "hono";
+import { cors } from 'hono/cors';
 import { CodeGenerate } from "./endpoints/codes/codeGenerate";
 import { CodeRedeem } from "./endpoints/codes/codeRedeem";
 import { UploadQuota } from "./endpoints/siteSessions/uploadQuota";
@@ -11,6 +12,16 @@ import { MultipartComplete } from "./endpoints/siteSessions/multipart/multipartC
 
 // Start a Hono app
 const app = new Hono();
+
+// 添加 CORS 支持
+app.use(
+  '*',
+  cors({
+    origin: '*', // 或指定来源，例如 'http://127.0.0.1:8080'
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 
 // Setup OpenAPI registry
 const openapi = fromHono(app, {
