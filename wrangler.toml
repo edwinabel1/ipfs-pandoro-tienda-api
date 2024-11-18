@@ -112,6 +112,10 @@ enabled = true
 # binding = "MY_INDEX"
 # index_name = "my-index"
 
+[vars]
+R2_ENDPOINT = "https://00f6c85f82f6297c8c0bef9460e013d9.r2.cloudflarestorage.com"
+R2_BUCKET = "ipfs-pandoro"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "ipfs-pandoro-d1"
