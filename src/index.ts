@@ -11,6 +11,8 @@ import { MultipartComplete } from "./endpoints/siteSessions/multipart/multipartC
 import { MetadataStore } from "./objects/MetadataStore"
 import { MetadataGet } from "./endpoints/metadata/metadataGet";
 import { debugSchema, debugHandler } from "./endpoints/metadata/debug";
+import { OrderManager } from "./objects/OrderManager"
+import { createOrder, getOrderStatus, updateOrder } from "./endpoints/orders/orders";
 
 // Start a Hono app
 const app = new Hono();
@@ -48,7 +50,13 @@ openapi.get("/api/metadata/get", MetadataGet);
 // 注册 `debug` 路由到 OpenAPI
 openapi.get("/api/metadata/debug", debugHandler, debugSchema);
 
+// 注册 Orders API
+openapi.post("/api/orders", createOrder.handler, createOrder.schema); // 创建订单
+openapi.get("/api/orders/:order_id", getOrderStatus.handler, getOrderStatus.schema); // 查询订单状态
+openapi.put("/api/orders/:order_id", updateOrder.handler, updateOrder.schema); // 更新订单状态
+
 export { MetadataStore };
+export { OrderManager };
 
 // Export the Hono app
 export default app;

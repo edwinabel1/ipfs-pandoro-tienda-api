@@ -129,6 +129,6 @@ bucket_name = "ipfs-pandoro"
 name = "METADATA_STORE"
 class_name = "MetadataStore"
 
-[[migrations]]
-tag = "v1"
-new_classes = ["MetadataStore"]
+[[durable_objects.bindings]]
+name = "ORDER_MANAGER"
+class_name = "OrderManager"
