@@ -8,7 +8,9 @@ import { UploadRequest } from "./endpoints/siteSessions/uploadRequest";
 import { MultipartInit } from "./endpoints/siteSessions/multipart/multipartInit";
 import { MultipartPart } from "./endpoints/siteSessions/multipart/multipartPart";
 import { MultipartComplete } from "./endpoints/siteSessions/multipart/multipartComplete";
-
+import { MetadataStore } from "./objects/MetadataStore"
+import { MetadataGet } from "./endpoints/metadata/metadataGet";
+import { debugSchema, debugHandler } from "./endpoints/metadata/debug";
 
 // Start a Hono app
 const app = new Hono();
@@ -40,6 +42,13 @@ openapi.post("/api/uploads/request", UploadRequest);
 openapi.post("/api/uploads/multipart/init", MultipartInit);
 openapi.post("/api/uploads/multipart/part", MultipartPart);
 openapi.post("/api/uploads/multipart/complete", MultipartComplete);
+
+// 注册 Metadata Get API
+openapi.get("/api/metadata/get", MetadataGet);
+// 注册 `debug` 路由到 OpenAPI
+openapi.get("/api/metadata/debug", debugHandler, debugSchema);
+
+export { MetadataStore };
 
 // Export the Hono app
 export default app;

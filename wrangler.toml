@@ -124,3 +124,11 @@ database_id = "44b0487f-c8dc-4fb5-855b-32d27b90f151"
 [[r2_buckets]]
 binding = "BUCKET"
 bucket_name = "ipfs-pandoro"
+
+[[durable_objects.bindings]]
+name = "METADATA_STORE"
+class_name = "MetadataStore"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["MetadataStore"]
