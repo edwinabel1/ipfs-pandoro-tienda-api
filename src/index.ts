@@ -13,6 +13,8 @@ import { MetadataGet } from "./endpoints/metadata/metadataGet";
 import { debugSchema, debugHandler } from "./endpoints/metadata/debug";
 import { OrderManager } from "./objects/OrderManager"
 import { createOrder, getOrderStatus, updateOrder } from "./endpoints/orders/orders";
+import { R2ToCidMapping } from "./objects/R2ToCidMapping"
+import { addMapping, getMapping, deleteMapping } from "./endpoints/r2cid/r2Cid";
 
 // Start a Hono app
 const app = new Hono();
@@ -55,8 +57,14 @@ openapi.post("/api/orders", createOrder.handler, createOrder.schema); // 创建�
 openapi.get("/api/orders/:order_id", getOrderStatus.handler, getOrderStatus.schema); // 查询订单状态
 openapi.put("/api/orders/:order_id", updateOrder.handler, updateOrder.schema); // 更新订单状态
 
+// 注册 R2ToCidMapping API
+openapi.post("/api/r2-cid/add", addMapping.handler, addMapping.schema); // 添加映射
+openapi.get("/api/r2-cid/get", getMapping.handler, getMapping.schema); // 查询映射
+openapi.delete("/api/r2-cid/delete", deleteMapping.handler, deleteMapping.schema); // 删除映射
+
 export { MetadataStore };
 export { OrderManager };
+export { R2ToCidMapping };
 
 // Export the Hono app
 export default app;
