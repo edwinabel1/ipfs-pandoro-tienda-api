@@ -1,14 +1,15 @@
 export default {
   async addMapping(key, cid, c) {
-	const env = c.env;
+    const env = c.env;
     if (!key || !cid) {
       throw new Error("Key and CID are required");
     }
 
-    const durableObjectId = env.R2_TO_CID_MAPPING.idFromName(key);
+    // 使用固定的 Durable Object 实例
+    const durableObjectId = env.R2_TO_CID_MAPPING.idFromName("main-instance");
     const durableObjectStub = env.R2_TO_CID_MAPPING.get(durableObjectId);
 
-	const durableObjectUrl = new URL("/r2tocidmapping/add", c.req.url).toString();
+    const durableObjectUrl = new URL("/r2tocidmapping/add", c.req.url).toString();
     const response = await durableObjectStub.fetch(durableObjectUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -22,15 +23,16 @@ export default {
   },
 
   async getMapping(key, c) {
-	const env = c.env;
+    const env = c.env;
     if (!key) {
       throw new Error("Key is required");
     }
 
-    const durableObjectId = env.R2_TO_CID_MAPPING.idFromName(key);
+    // 使用固定的 Durable Object 实例
+    const durableObjectId = env.R2_TO_CID_MAPPING.idFromName("main-instance");
     const durableObjectStub = env.R2_TO_CID_MAPPING.get(durableObjectId);
 
-	const durableObjectUrl = new URL(`/r2tocidmapping/get?key=${encodeURIComponent(key)}`, c.req.url).toString();
+    const durableObjectUrl = new URL(`/r2tocidmapping/get?key=${encodeURIComponent(key)}`, c.req.url).toString();
     const response = await durableObjectStub.fetch(durableObjectUrl, {
       method: "GET",
     });
@@ -44,15 +46,16 @@ export default {
   },
 
   async deleteMapping(key, c) {
-	const env = c.env;
+    const env = c.env;
     if (!key) {
       throw new Error("Key is required");
     }
 
-    const durableObjectId = env.R2_TO_CID_MAPPING.idFromName(key);
+    // 使用固定的 Durable Object 实例
+    const durableObjectId = env.R2_TO_CID_MAPPING.idFromName("main-instance");
     const durableObjectStub = env.R2_TO_CID_MAPPING.get(durableObjectId);
 
-	const durableObjectUrl = new URL("/r2tocidmapping/delete", c.req.url).toString();
+    const durableObjectUrl = new URL("/r2tocidmapping/delete", c.req.url).toString();
     const response = await durableObjectStub.fetch(durableObjectUrl, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -64,10 +67,16 @@ export default {
       throw new Error(`Failed to delete mapping: ${error}`);
     }
   },
-  
+
   async debugMapping(c) {
-    const durableObjectStub = c.env.R2_CID_MAPPING.get(c.env.R2_CID_MAPPING.idFromName("debug"));
-    const response = await durableObjectStub.fetch(`/r2tocidmapping/debug`);
+    const env = c.env;
+
+    // 使用固定的 Durable Object 实例
+    const durableObjectId = env.R2_TO_CID_MAPPING.idFromName("main-instance");
+    const durableObjectStub = env.R2_TO_CID_MAPPING.get(durableObjectId);
+
+    const durableObjectUrl = new URL(`/r2tocidmapping/debug`, c.req.url).toString();
+    const response = await durableObjectStub.fetch(durableObjectUrl);
     if (!response.ok) {
       throw new Error(`Failed to debug mappings: ${response.status}`);
     }

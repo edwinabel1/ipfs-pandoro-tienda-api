@@ -92,19 +92,19 @@ export class R2ToCidMapping {
 	  try {
 		// 获取存储的键值对 Map
 		const storedEntries = await this.state.storage.list();
+		console.log("Stored entries raw:", storedEntries);
 
-		// 将 Map 转换为普通对象
+		// 确保将 Map 转换为普通对象
 		const storedObject = Object.fromEntries(storedEntries);
+		console.log("Converted stored object:", storedObject);
 
 		return new Response(
 		  JSON.stringify({ stored: storedObject }),
-		  { status: 200, headers: { "Content-Type": "application/json" }
-		  }
+		  { status: 200, headers: { "Content-Type": "application/json" } }
 		);
 	  } catch (error) {
 		console.error("Error retrieving debug information:", error);
 		return new Response("Failed to retrieve debug information", { status: 500 });
 	  }
 	}
-
 }
