@@ -20,7 +20,7 @@ export class OrderManager {
     }
 	
 	if (method === "GET" && url.pathname === "/ordermanager/debug") {
-      return await this.debugMetadata();
+      return await this.debugOrders();
     }
 
     return new Response("Not Found", { status: 404 });
@@ -66,7 +66,7 @@ export class OrderManager {
       const order = await this.state.storage.get(order_id);
 
       if (!order) {
-        return new Response("Order not found", { status: 404 });
+        return new Response(`Order not found ${order_id}`, { status: 404 });
       }
 
       return new Response(JSON.stringify(order), {
@@ -109,23 +109,27 @@ export class OrderManager {
     }
   }
   
-	async debugMetadata() {
-	  try {
-		// 获取存储的键值对 Map
-		const storedEntries = await this.state.storage.list();
+  // 调试方法：获取所有存储的订单数据
+  async debugOrders() {
+    try {
+      // 获取存储的键值对 Map
+      const storedEntries = await this.state.storage.list();
+      // 将 Map 转换为普通对象
+      const storedObject = {};
+      for (const [key, value] of storedEntries) {
+        storedObject[key] = value;
+      }
 
-		// 将 Map 转换为普通对象
-		const storedObject = Object.fromEntries(storedEntries);
-
-		return new Response(
-		  JSON.stringify({ stored: storedObject }),
-		  { status: 200, headers: { "Content-Type": "application/json" }
-		  }
-		);
-	  } catch (error) {
-		console.error("Error retrieving debug information:", error);
-		return new Response("Failed to retrieve debug information", { status: 500 });
-	  }
-	}
-
+      return new Response(
+        JSON.stringify({ success: true, orders: storedObject }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    } catch (error) {
+      console.error("Error retrieving debug information:", error);
+      return new Response(
+        JSON.stringify({ success: false, message: "Failed to retrieve debug information" }),
+        { status: 500 }
+      );
+    }
+  }
 }

@@ -65,7 +65,8 @@ export const createOrder = {
 // 查询订单状态
 export const getOrderStatus = {
   handler: async (c: any) => {
-    const { order_id } = c.req.param();
+	const url = new URL(c.req.url);
+	const order_id = url.searchParams.get("order_id");
 
     try {
       const result = await orderService.getOrderStatus(order_id, c);
@@ -120,8 +121,7 @@ export const getOrderStatus = {
 // 更新订单状态
 export const updateOrder = {
   handler: async (c: any) => {
-    const { order_id } = c.req.param();
-    const { status, result } = await c.req.json();
+    const { order_id, status, result } = await c.req.json();
 
     try {
       await orderService.updateOrder(order_id, { status, result }, c);
@@ -161,3 +161,61 @@ export const updateOrder = {
     },
   },
 };
+
+// 调试订单数据
+export const debugOrders = {
+  handler: async (c: any) => {
+    try {
+      const result = await orderService.debugOrders(c);
+      return c.json({ success: true, ...result }, 200);
+    } catch (error) {
+      return c.json({ success: false, message: error.message }, 500);
+    }
+  },
+  schema: {
+    summary: "Debug Orders",
+    description: "Retrieve all stored order data for debugging purposes.",
+    responses: {
+      200: {
+        description: "Orders retrieved successfully.",
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                success: { type: "boolean" },
+                orders: {
+                  type: "object",
+                  additionalProperties: {
+                    type: "object",
+                    properties: {
+                      order_id: { type: "string" },
+                      type: { type: "string" },
+                      status: { type: "string" },
+                      files: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            uuid: { type: "string" },
+                            path: { type: "string" },
+                          },
+                        },
+                      },
+                      result: { type: "string" },
+                      createdAt: { type: "string" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      500: {
+        description: "Internal Server Error.",
+      },
+    },
+  },
+};
+

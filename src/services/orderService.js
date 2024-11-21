@@ -5,11 +5,11 @@ export default {
    * @param {string} params.order_id - 订单唯一标识
    * @param {string} params.type - 订单类型 ('file' or 'directory')
    * @param {Array<Object>} params.files - 文件数组
-   * @param {Object} env - Cloudflare 环境变量对象
+   * @param {Object} c - Hono 上下文对象
    * @returns {Promise<Object>} 返回创建成功的订单 ID
    */
   async createOrder({ order_id, type, files }, c) {
-	  const env = c.env;
+    const env = c.env;
     if (!order_id || !type || !files || files.length === 0) {
       throw new Error("Invalid order data");
     }
@@ -18,8 +18,8 @@ export default {
       throw new Error("ORDER_MANAGER is not initialized in the environment");
     }
 
-    // 获取 Durable Object 实例
-    const durableObjectId = env.ORDER_MANAGER.idFromName(order_id);
+    // 使用固定的 Durable Object 实例
+    const durableObjectId = env.ORDER_MANAGER.idFromName("main-instance");
     const durableObjectStub = env.ORDER_MANAGER.get(durableObjectId);
 
     // 拼接完整的 Durable Object 路径
@@ -44,11 +44,11 @@ export default {
   /**
    * 查询订单状态
    * @param {string} order_id - 订单唯一标识
-   * @param {Object} env - Cloudflare 环境变量对象
+   * @param {Object} c - Hono 上下文对象
    * @returns {Promise<Object>} 返回订单状态数据
    */
   async getOrderStatus(order_id, c) {
-	  const env = c.env;
+    const env = c.env;
     if (!order_id) {
       throw new Error("Order ID is required");
     }
@@ -57,12 +57,14 @@ export default {
       throw new Error("ORDER_MANAGER is not initialized in the environment");
     }
 
-    // 获取 Durable Object 实例
-    const durableObjectId = env.ORDER_MANAGER.idFromName(order_id);
+    // 使用固定的 Durable Object 实例
+    const durableObjectId = env.ORDER_MANAGER.idFromName("main-instance");
     const durableObjectStub = env.ORDER_MANAGER.get(durableObjectId);
 
+    // 拼接完整的 Durable Object 路径
+    const durableObjectUrl = new URL(`/ordermanager/status?order_id=${encodeURIComponent(order_id)}`, c.req.url).toString();
+
     // 调用 OrderManager 的 status 接口
-	const durableObjectUrl = new URL(`/ordermanager/status?order_id=${order_id}`, c.req.url).toString();
     const response = await durableObjectStub.fetch(durableObjectUrl, {
       method: "GET",
     });
@@ -82,11 +84,11 @@ export default {
    * @param {Object} params - 更新参数
    * @param {string} params.status - 更新的订单状态
    * @param {string} [params.result] - 更新的处理结果（可选）
-   * @param {Object} env - Cloudflare 环境变量对象
+   * @param {Object} c - Hono 上下文对象
    * @returns {Promise<void>}
    */
   async updateOrder(order_id, { status, result }, c) {
-	  const env = c.env;
+    const env = c.env;
     if (!order_id) {
       throw new Error("Order ID is required");
     }
@@ -99,12 +101,14 @@ export default {
       throw new Error("ORDER_MANAGER is not initialized in the environment");
     }
 
-    // 获取 Durable Object 实例
-    const durableObjectId = env.ORDER_MANAGER.idFromName(order_id);
+    // 使用固定的 Durable Object 实例
+    const durableObjectId = env.ORDER_MANAGER.idFromName("main-instance");
     const durableObjectStub = env.ORDER_MANAGER.get(durableObjectId);
 
+    // 拼接完整的 Durable Object 路径
+    const durableObjectUrl = new URL("/ordermanager/update", c.req.url).toString();
+
     // 调用 OrderManager 的 update 接口
-	const durableObjectUrl = new URL("/ordermanager/update", c.req.url).toString();
     const response = await durableObjectStub.fetch(durableObjectUrl, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -116,5 +120,39 @@ export default {
       const error = await response.text();
       throw new Error(`Failed to update order: ${error}`);
     }
+  },
+  
+  /**
+   * 调试订单数据
+   * @param {Object} c - Hono 上下文对象
+   * @returns {Promise<Object>} 返回所有订单数据
+   */
+  async debugOrders(c) {
+    const env = c.env;
+
+    if (!env.ORDER_MANAGER) {
+      throw new Error("ORDER_MANAGER is not initialized in the environment");
+    }
+
+    // 使用固定的 Durable Object 实例
+    const durableObjectId = env.ORDER_MANAGER.idFromName("main-instance");
+    const durableObjectStub = env.ORDER_MANAGER.get(durableObjectId);
+
+    // 使用固定的基准 URL
+	const durableObjectUrl = new URL(`/ordermanager/debug`, c.req.url).toString();
+
+    console.log("Fetching all orders for debugging");
+    console.log("Durable Object ID:", durableObjectId.toString());
+
+    const response = await durableObjectStub.fetch(durableObjectUrl, {
+      method: "GET",
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to fetch orders: ${error}`);
+    }
+
+    return await response.json();
   },
 };

@@ -12,7 +12,7 @@ import { MetadataStore } from "./objects/MetadataStore"
 import { MetadataGet } from "./endpoints/metadata/metadataGet";
 import { debugSchema, debugHandler } from "./endpoints/metadata/debug";
 import { OrderManager } from "./objects/OrderManager"
-import { createOrder, getOrderStatus, updateOrder } from "./endpoints/orders/orders";
+import { createOrder, getOrderStatus, updateOrder, debugOrders } from "./endpoints/orders/orders";
 import { R2ToCidMapping } from "./objects/R2ToCidMapping"
 import { addMapping, getMapping, deleteMapping, debugMapping } from "./endpoints/r2cid/r2Cid";
 
@@ -53,9 +53,10 @@ openapi.get("/api/metadata/get", MetadataGet);
 openapi.get("/api/metadata/debug", debugHandler, debugSchema);
 
 // 注册 Orders API
+openapi.get('/api/orders/debug', debugOrders.handler, debugOrders.schema);
 openapi.post("/api/orders", createOrder.handler, createOrder.schema); // 创建订单
-openapi.get("/api/orders/:order_id", getOrderStatus.handler, getOrderStatus.schema); // 查询订单状态
-openapi.put("/api/orders/:order_id", updateOrder.handler, updateOrder.schema); // 更新订单状态
+openapi.get("/api/orders/status", getOrderStatus.handler, getOrderStatus.schema); // 查询订单状态
+openapi.put("/api/orders/update", updateOrder.handler, updateOrder.schema); // 更新订单状态
 
 // 注册 R2ToCidMapping API
 openapi.post("/api/r2-cid/add", addMapping.handler, addMapping.schema); // 添加映射
