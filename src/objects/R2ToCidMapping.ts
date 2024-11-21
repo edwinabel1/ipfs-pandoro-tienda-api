@@ -18,6 +18,10 @@ export class R2ToCidMapping {
     if (method === "DELETE" && url.pathname === "/r2tocidmapping/delete") {
       return await this.deleteMapping(request);
     }
+	
+	if (method === "GET" && url.pathname === "/r2tocidmapping/debug") {
+      return await this.debugMetadata();
+    }
 
     return new Response("Not Found", { status: 404 });
   }
@@ -83,4 +87,24 @@ export class R2ToCidMapping {
       return new Response("Internal Server Error", { status: 500 });
     }
   }
+  
+	async debugMetadata() {
+	  try {
+		// 获取存储的键值对 Map
+		const storedEntries = await this.state.storage.list();
+
+		// 将 Map 转换为普通对象
+		const storedObject = Object.fromEntries(storedEntries);
+
+		return new Response(
+		  JSON.stringify({ stored: storedObject }),
+		  { status: 200, headers: { "Content-Type": "application/json" }
+		  }
+		);
+	  } catch (error) {
+		console.error("Error retrieving debug information:", error);
+		return new Response("Failed to retrieve debug information", { status: 500 });
+	  }
+	}
+
 }
