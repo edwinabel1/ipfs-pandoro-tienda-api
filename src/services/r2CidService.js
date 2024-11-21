@@ -64,4 +64,13 @@ export default {
       throw new Error(`Failed to delete mapping: ${error}`);
     }
   },
+  
+  async debugMapping(c) {
+    const durableObjectStub = c.env.R2_CID_MAPPING.get(c.env.R2_CID_MAPPING.idFromName("debug"));
+    const response = await durableObjectStub.fetch(`/r2tocidmapping/debug`);
+    if (!response.ok) {
+      throw new Error(`Failed to debug mappings: ${response.status}`);
+    }
+    return await response.json();
+  },
 };

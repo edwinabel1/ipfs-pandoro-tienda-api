@@ -133,3 +133,38 @@ export const deleteMapping = {
     },
   },
 };
+
+// 添加 R2 键到 CID 的调试功能
+export const debugMapping = {
+  handler: async (c: any) => {
+    try {
+      const data = await r2CidService.debugMapping(c);
+
+      return c.json({ success: true, data }, 200);
+    } catch (error) {
+      console.error("Error debugging mappings:", error);
+      return c.json({ success: false, message: error.message }, 500);
+    }
+  },
+  schema: {
+    summary: "Debug R2 Key to CID Mappings",
+    description: "Retrieve all stored R2 to CID mappings for debugging purposes.",
+    responses: {
+      200: {
+        description: "Mappings retrieved successfully",
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                stored: { type: "object" },
+              },
+            },
+          },
+        },
+      },
+      500: { description: "Internal Server Error" },
+    },
+  },
+};
+
