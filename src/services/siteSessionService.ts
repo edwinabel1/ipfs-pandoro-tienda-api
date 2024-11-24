@@ -40,92 +40,94 @@ export class SiteSessionService {
     }
   }
 
-  // 生成上传 URL
-  static async generateUploadUrl(
-    c,
-    session_id,
-    file_name,
-    file_size,
-    content_type,
-    metadata
-  ) {
-    const env = c.env;
+// 生成上传 URL
+static async generateUploadUrl(
+  c,
+  session_id,
+  file_name,
+  file_size,
+  content_type,
+  metadata
+) {
+  const env = c.env;
 
-    // 验证配额
-    await this.validateQuota(env, session_id, file_size);
+  // 验证配额
+  await this.validateQuota(env, session_id, file_size);
 
-    const S3 = new S3Client({
-      region: "auto",
-      endpoint: env.R2_ENDPOINT,
-      credentials: {
-        accessKeyId: env.R2_ACCESS_KEY_ID,
-        secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+  const S3 = new S3Client({
+    region: "auto",
+    endpoint: env.R2_ENDPOINT,
+    credentials: {
+      accessKeyId: env.R2_ACCESS_KEY_ID,
+      secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+    },
+  });
+
+  // 生成随机文件名和路径
+  const randomFileName = generateUUID();
+  const randomPathName = `pending_files/${randomFileName}`;
+
+  try {
+    // 提取元数据
+    const fileMetadata = {
+      path: metadata.path,
+      "replica-count": metadata["replica-count"],
+      order_id: metadata.order_id,
+    };
+
+    // 配置上传命令
+    const command = new PutObjectCommand({
+      Bucket: env.R2_BUCKET,
+      Key: randomPathName,
+      ContentType: content_type,
+      ContentLength: file_size,
+      Metadata: fileMetadata,
+    });
+
+    // 生成预签名 URL
+    const signedUrl = await getSignedUrl(S3, command, { expiresIn: 900 });
+
+    // 获取 Durable Object 实例
+    const metadataStoreId = env.METADATA_STORE.idFromName("metadata-store");
+    const metadataStore = env.METADATA_STORE.get(metadataStoreId);
+
+    // 生成全路径调用 URL
+    const durableObjectUrl = new URL("/filemeta/store", c.req.url).toString();
+
+    // 准备元数据负载
+    const metadataPayload = {
+      key: randomPathName,
+      metadata: fileMetadata, // 复用提取的元数据
+    };
+
+    // 发送请求到 Durable Object
+    const response = await metadataStore.fetch(durableObjectUrl, {
+      method: "POST",
+      body: JSON.stringify(metadataPayload),
+      headers: {
+        "Content-Type": "application/json",
       },
     });
 
-    // 生成随机文件名和路径
-    const randomFileName = generateUUID();
-    const randomPathName = `pending_files/${randomFileName}`;
-
-    try {
-      // 配置上传命令
-      const command = new PutObjectCommand({
-        Bucket: env.R2_BUCKET,
-        Key: randomPathName,
-        ContentType: content_type,
-        ContentLength: file_size,
-        Metadata: {
-          path: metadata.path,
-          "replica-count": metadata["replica-count"],
-        },
-      });
-
-      // 生成预签名 URL
-      const signedUrl = await getSignedUrl(S3, command, { expiresIn: 900 });
-
-      // 获取 Durable Object 实例
-      const metadataStoreId = env.METADATA_STORE.idFromName("metadata-store");
-      const metadataStore = env.METADATA_STORE.get(metadataStoreId);
-
-      // 生成全路径调用 URL
-      const durableObjectUrl = new URL('/filemeta/store', c.req.url).toString();
-
-      // 准备元数据负载，使用与 R2 对象相同的键
-      const metadataPayload = {
-        key: randomPathName,
-        metadata: {
-          path: metadata.path,
-          "replica-count": metadata["replica-count"],
-        },
-      };
-
-      // 发送请求到 Durable Object
-      const response = await metadataStore.fetch(durableObjectUrl, {
-        method: "POST",
-        body: JSON.stringify(metadataPayload),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      // 检查响应
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to store metadata: ${errorText}`);
-      }
-
-      return {
-        upload_url: signedUrl,
-        object_key: randomPathName,
-      };
-    } catch (error) {
-      console.error(
-        "Error generating signed URL or storing metadata:",
-        error
-      );
-      throw new Error("Failed to generate signed URL or store metadata");
+    // 检查响应
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to store metadata: ${errorText}`);
     }
+
+    return {
+      upload_url: signedUrl,
+      object_key: randomPathName,
+    };
+  } catch (error) {
+    console.error(
+      "Error generating signed URL or storing metadata:",
+      error
+    );
+    throw new Error("Failed to generate signed URL or store metadata");
   }
+}
+
 
   // 创建子站点会话
   static async createSiteSession(env: any, quota: number) {

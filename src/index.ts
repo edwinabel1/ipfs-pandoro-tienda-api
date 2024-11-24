@@ -11,6 +11,7 @@ import { MultipartComplete } from "./endpoints/siteSessions/multipart/multipartC
 import { MetadataStore } from "./objects/MetadataStore"
 import { MetadataGet } from "./endpoints/metadata/metadataGet";
 import { debugSchema, debugHandler } from "./endpoints/metadata/debug";
+import { MetadataRemoveAll } from "./endpoints/metadata/removeAll";
 import { OrderManager } from "./objects/OrderManager"
 import { createOrder, getOrderStatus, updateOrder, debugOrders } from "./endpoints/orders/orders";
 import { R2ToCidMapping } from "./objects/R2ToCidMapping"
@@ -49,7 +50,7 @@ openapi.post("/api/uploads/multipart/complete", MultipartComplete);
 
 // 注册 Metadata Get API
 openapi.get("/api/metadata/get", MetadataGet);
-// 注册 `debug` 路由到 OpenAPI
+openapi.post("/api/metadata/remove-all", MetadataRemoveAll);
 openapi.get("/api/metadata/debug", debugHandler, debugSchema);
 
 // 注册 Orders API
