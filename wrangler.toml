@@ -133,10 +133,6 @@ class_name = "MetadataStore"
 name = "ORDER_MANAGER"
 class_name = "OrderManager"
 
-[[durable_objects.bindings]]
-name = "R2_TO_CID_MAPPING"
-class_name = "R2ToCidMapping"
-
 [[migrations]]
 tag = "v5" # Should be unique for each entry
-new_classes = ["R2ToCidMapping"]
+new_classes = ["MetadataStore", "OrderManager"]

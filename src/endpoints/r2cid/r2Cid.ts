@@ -1,17 +1,25 @@
 import { Hono } from "hono";
-import r2CidService from "../../services/r2CidService";
+import orderService from "../../services/orderService";
+import metadataService from "../../services/metadataService";
 
 // 添加 R2 键到 CID 的映射
 export const addMapping = {
   handler: async (c: any) => {
     try {
-      const { key, cid } = await c.req.json();
+      const { key: file_id, cid, size } = await c.req.json();
 
-      if (!key || !cid) {
-        return c.json({ success: false, message: "Key and CID are required" }, 400);
+      if (!file_id || !cid || !size) {
+        return c.json({ success: false, message: "File ID, CID, and file size are required" }, 400);
       }
 
-      await r2CidService.addMapping(key, cid, c);
+      // 查询 file_id 对应的 order_id
+      const order_id = await metadataService.getOrderIdByFileId(file_id, c);
+      if (!order_id) {
+        return c.json({ success: false, message: `Order ID not found for file ID: ${file_id}` }, 404);
+      }
+
+      // 调用服务层，传递 size 参数
+      await orderService.addFileMapping(order_id, file_id, cid, size, c);
 
       return c.json({ success: true, message: "Mapping added successfully" }, 201);
     } catch (error) {
@@ -30,8 +38,9 @@ export const addMapping = {
             properties: {
               key: { type: "string", description: "R2 file key" },
               cid: { type: "string", description: "IPFS CID" },
+              size: { type: "integer", description: "Size of the file in bytes" },
             },
-            required: ["key", "cid"],
+            required: ["key", "cid", "size"],
           },
         },
       },
@@ -48,15 +57,27 @@ export const addMapping = {
 export const getMapping = {
   handler: async (c: any) => {
     try {
-      const key = c.req.query("key");
+      const file_id = c.req.query("key");
 
-      if (!key) {
-        return c.json({ success: false, message: "Key is required" }, 400);
+      if (!file_id) {
+        return c.json({ success: false, message: "File ID is required" }, 400);
       }
 
-      const data = await r2CidService.getMapping(key, c);
+      // 查询 file_id 对应的 order_id
+      const order_id = await metadataService.getOrderIdByFileId(file_id, c);
+      if (!order_id) {
+        return c.json({ success: false, message: `Order ID not found for file ID: ${file_id}` }, 404);
+      }
 
-      return c.json({ success: true, data }, 200);
+      // 从订单中获取映射
+      const mapping = await orderService.getFileMapping(order_id, file_id, c);
+
+      if (!mapping) {
+        return c.json({ success: false, message: "Mapping not found" }, 404);
+      }
+
+      // 返回数据
+      return c.json({ success: true, data: mapping }, 200);
     } catch (error) {
       console.error("Error getting mapping:", error);
       return c.json({ success: false, message: error.message }, 500);
@@ -64,10 +85,10 @@ export const getMapping = {
   },
   schema: {
     summary: "Get R2 Key to CID Mapping",
-    description: "Retrieve the CID for a given R2 file key.",
+    description: "Retrieve the CID and file size for a given R2 file key.",
     parameters: {
       query: {
-        key: { type: "string", description: "R2 file key", required: true },
+        key: { type: "string", description: "R2 file key (file_id)", required: true },
       },
     },
     responses: {
@@ -80,6 +101,7 @@ export const getMapping = {
               properties: {
                 key: { type: "string" },
                 cid: { type: "string" },
+                size: { type: "integer" },
               },
             },
           },
@@ -96,13 +118,20 @@ export const getMapping = {
 export const deleteMapping = {
   handler: async (c: any) => {
     try {
-      const { key } = await c.req.json();
+      const { key: file_id } = await c.req.json();
 
-      if (!key) {
-        return c.json({ success: false, message: "Key is required" }, 400);
+      if (!file_id) {
+        return c.json({ success: false, message: "File ID is required" }, 400);
       }
 
-      await r2CidService.deleteMapping(key, c);
+      // 查询 file_id 对应的 order_id
+      const order_id = await metadataService.getOrderIdByFileId(file_id, c);
+      if (!order_id) {
+        return c.json({ success: false, message: `Order ID not found for file ID: ${file_id}` }, 404);
+      }
+
+      // 删除文件映射
+      await orderService.deleteFileMapping(order_id, file_id, c);
 
       return c.json({ success: true, message: "Mapping deleted successfully" }, 200);
     } catch (error) {
@@ -119,7 +148,7 @@ export const deleteMapping = {
           schema: {
             type: "object",
             properties: {
-              key: { type: "string", description: "R2 file key" },
+              key: { type: "string", description: "R2 file key (file_id)" },
             },
             required: ["key"],
           },
@@ -138,9 +167,20 @@ export const deleteMapping = {
 export const debugMapping = {
   handler: async (c: any) => {
     try {
-      const data = await r2CidService.debugMapping(c);
+      const storage = c.env.STORAGE;
 
-      return c.json({ success: true, data }, 200);
+      const keys = await storage.list(); // 获取所有 file_id
+      const stored = {};
+      for (const file_id of keys) {
+        // 查询每个 file_id 的元数据和订单映射
+        const order_id = await metadataService.getOrderIdByFileId(file_id, c);
+        if (order_id) {
+          const mapping = await orderService.getFileMapping(order_id, file_id, c);
+          stored[file_id] = mapping;
+        }
+      }
+
+      return c.json({ success: true, data: stored }, 200);
     } catch (error) {
       console.error("Error debugging mappings:", error);
       return c.json({ success: false, message: error.message }, 500);
@@ -148,7 +188,7 @@ export const debugMapping = {
   },
   schema: {
     summary: "Debug R2 Key to CID Mappings",
-    description: "Retrieve all stored R2 to CID mappings for debugging purposes.",
+    description: "Retrieve all stored R2 to CID mappings for debugging purposes, including file sizes.",
     responses: {
       200: {
         description: "Mappings retrieved successfully",
@@ -157,7 +197,16 @@ export const debugMapping = {
             schema: {
               type: "object",
               properties: {
-                stored: { type: "object" },
+                stored: {
+                  type: "object",
+                  additionalProperties: {
+                    type: "object",
+                    properties: {
+                      cid: { type: "string" },
+                      size: { type: "integer" },
+                    },
+                  },
+                },
               },
             },
           },
@@ -167,4 +216,3 @@ export const debugMapping = {
     },
   },
 };
-

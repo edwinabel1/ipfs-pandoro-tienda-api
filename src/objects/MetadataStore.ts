@@ -100,7 +100,9 @@ export class MetadataStore {
       return await this.deleteMetadata(request);
     } else if (pathname === "/filemeta/debug") {
       return await this.debugMetadata();
-    }
+    } else if (pathname === "/filemeta/remove-all") {
+	  return await this.removeAll();
+	}
 
     return new Response("Not Found", { status: 404 });
   }

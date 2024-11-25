@@ -1,5 +1,40 @@
 import orderService from "../../services/orderService";
 
+export const removeAllOrders = {
+  handler: async (c) => {
+    try {
+      const result = await orderService.removeAllOrders(c);
+      return c.json(result, 200);
+    } catch (error) {
+      console.error("Error removing all orders:", error);
+      return c.json({ success: false, message: error.message }, 500);
+    }
+  },
+  schema: {
+    summary: "Remove All Orders",
+    description: "Deletes all stored orders.",
+    responses: {
+      200: {
+        description: "All orders removed successfully",
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                success: { type: "boolean" },
+                message: { type: "string" },
+              },
+            },
+          },
+        },
+      },
+      500: {
+        description: "Failed to remove all orders",
+      },
+    },
+  },
+};
+
 // 创建订单
 export const createOrder = {
   handler: async (c: any) => {
