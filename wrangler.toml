@@ -125,6 +125,10 @@ database_id = "44b0487f-c8dc-4fb5-855b-32d27b90f151"
 binding = "BUCKET"
 bucket_name = "ipfs-pandoro"
 
+[[queues.producers]]
+binding = "QUEUE"
+queue = "ipfs-pandoro-notify"
+
 [[durable_objects.bindings]]
 name = "METADATA_STORE"
 class_name = "MetadataStore"

@@ -11,7 +11,7 @@ import { MultipartComplete } from "./endpoints/siteSessions/multipart/multipartC
 import { MetadataStore } from "./objects/MetadataStore";
 import { getMetadata, debugMetadata, removeAllMetadata } from "./endpoints/metadata/metadata";
 import { OrderManager } from "./objects/OrderManager";
-import { createOrder, getOrderStatus, updateOrder, debugOrders, removeAllOrders } from "./endpoints/orders/orders";
+import { createOrder, getOrderStatus, updateOrder, debugOrders, removeAllOrders, getAndLockMergeReadyOrder, completeOrder } from "./endpoints/orders/orders";
 import { addMapping, getMapping, deleteMapping, debugMapping } from "./endpoints/r2cid/r2Cid";
 
 // Start a Hono app
@@ -35,7 +35,6 @@ const openapi = fromHono(app, {
 // Register OpenAPI endpoints
 openapi.post("/api/codes/generate", CodeGenerate); // 生成兑换码
 openapi.post("/api/codes/redeem", CodeRedeem); // 验证和使用兑换码
-openapi.post("/api/uploads/quota", UploadQuota);
 
 // 注册普通上传接口
 openapi.post("/api/uploads/request", UploadRequest);
@@ -56,6 +55,8 @@ openapi.post("/api/orders", createOrder.handler, createOrder.schema); // 创建�
 openapi.get("/api/orders/status", getOrderStatus.handler, getOrderStatus.schema); // 查询订单状态
 openapi.put("/api/orders/update", updateOrder.handler, updateOrder.schema); // 更新订单状态
 openapi.post("/api/orders/remove-all", removeAllOrders.handler, removeAllOrders.schema);
+openapi.get("/api/orders/merge-ready", getAndLockMergeReadyOrder.handler, getAndLockMergeReadyOrder.schema);
+openapi.post("/api/orders/complete", completeOrder.handler, completeOrder.schema);
 
 // 注册 R2ToCidMapping API
 openapi.post("/api/r2-cid/add", addMapping.handler, addMapping.schema); // 添加映射

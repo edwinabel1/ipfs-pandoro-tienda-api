@@ -1,7 +1,101 @@
 import orderService from "../../services/orderService";
 
-export const removeAllOrders = {
+export const completeOrder = {
   handler: async (c) => {
+    try {
+      const { order_id, final_cid, node_id } = await c.req.json();
+
+      if (!order_id || !final_cid || !node_id) {
+        return c.json({ success: false, message: "Order ID, final CID, and node ID are required" }, 400);
+      }
+
+      // 调用服务层的 completeOrder 并获取返回结果
+      const result = await orderService.completeOrder(order_id, final_cid, node_id, c);
+
+      // 返回完整的结果，包含 completedNodesCount
+      return c.json({
+        success: true,
+        message: result.message,
+        completedNodesCount: result.completedNodesCount,
+      }, 200);
+    } catch (error) {
+      console.error("Error in completeOrder:", error.message);
+      return c.json({ success: false, message: error.message }, 500);
+    }
+  },
+  schema: {
+    summary: "Complete Order",
+    description: "Mark an order as completed by submitting its final CID and node ID.",
+    requestBody: {
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              order_id: { type: "string", description: "Unique identifier for the order" },
+              final_cid: { type: "string", description: "The final CID of the merged directory" },
+              node_id: { type: "string", description: "The ID of the node processing the order" },
+            },
+            required: ["order_id", "final_cid", "node_id"],
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: "Order completed successfully",
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                success: { type: "boolean" },
+                message: { type: "string" },
+                completedNodesCount: { type: "number", description: "The number of nodes that have completed this order" },
+              },
+            },
+          },
+        },
+      },
+      400: { description: "Invalid request data" },
+      500: { description: "Internal Server Error" },
+    },
+  },
+};
+
+export const getAndLockMergeReadyOrder = {
+  handler: async (c) => {
+    try {
+      const node_id = c.req.header("x-node-id");
+      if (!node_id) {
+        return c.json({ success: false, message: "Node ID is required in the request headers." }, 400);
+      }
+	  
+      const result = await orderService.getAndLockMergeReadyOrder(node_id, c);
+      return c.json(result, 200);
+    } catch (error) {
+      console.error("Error fetching and locking mergeReady order:", error);
+      return c.json({ success: false, message: error.message }, 500);
+    }
+  },
+  schema: {
+    summary: "Get and Lock Merge Ready Order",
+    description: "Retrieve the first mergeReady order and lock it for the requesting node.",
+    parameters: {
+      headers: {
+        "x-node-id": { type: "string", description: "The ID of the requesting node" },
+      },
+    },
+    responses: {
+      200: { description: "Order retrieved and locked successfully" },
+      400: { description: "Invalid node ID." },
+      500: { description: "Internal Server Error" },
+    },
+  },
+};
+
+export const removeAllOrders = {
+  handler: async (c: any) => {
     try {
       const result = await orderService.removeAllOrders(c);
       return c.json(result, 200);

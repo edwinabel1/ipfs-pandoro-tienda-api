@@ -1,5 +1,66 @@
 export default {
   /**
+   * 完成订单处理
+   * @param {string} order_id - 订单唯一标识
+   * @param {string} final_cid - 最终生成的 CID
+   * @param {Object} c - Hono 上下文对象
+   * @returns {Promise<void>}
+   */
+async completeOrder(order_id, final_cid, node_id, c) {
+  const env = c.env;
+
+  if (!env.ORDER_MANAGER) {
+    throw new Error("ORDER_MANAGER is not initialized in the environment.");
+  }
+
+  const durableObjectId = env.ORDER_MANAGER.idFromName("main-instance");
+  const durableObjectStub = env.ORDER_MANAGER.get(durableObjectId);
+  const durableObjectUrl = new URL("/ordermanager/complete", c.req.url).toString();
+
+  const response = await durableObjectStub.fetch(durableObjectUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ order_id, final_cid, node_id }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to complete order: ${error}`);
+  }
+
+  // 解析返回的 JSON 结果
+  const result = await response.json();
+  console.log(`Order completed: ${result.message}`);
+  console.log(`Total completed nodes count: ${result.completedNodesCount}`);
+
+  // 返回完整的结果供调用者使用
+  return result;
+},
+	
+async getAndLockMergeReadyOrder(node_id, c) {
+  const env = c.env;
+
+  if (!env.ORDER_MANAGER) {
+    throw new Error("ORDER_MANAGER is not initialized in the environment.");
+  }
+
+  const durableObjectId = env.ORDER_MANAGER.idFromName("main-instance");
+  const durableObjectStub = env.ORDER_MANAGER.get(durableObjectId);
+  
+  const durableObjectUrl = new URL(`/ordermanager/merge-ready?node_id=${encodeURIComponent(node_id)}`, c.req.url).toString();
+	console.log(durableObjectUrl);
+  const response = await durableObjectStub.fetch(durableObjectUrl, { method: "GET" });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to fetch and lock mergeReady order: ${error}`);
+  }
+
+  return await response.json();
+},
+
+	
+  /**
    * 创建订单
    * @param {Object} params - 订单参数
    * @param {string} params.order_id - 订单唯一标识
